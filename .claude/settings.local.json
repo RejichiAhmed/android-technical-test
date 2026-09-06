@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew test:*)",
+      "Bash(for skill in ~/.claude/skills/android-*)",
+      "Bash(done)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
