@@ -1,47 +1,50 @@
 package fr.leboncoin.data.di
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import fr.leboncoin.data.BuildConfig
 import fr.leboncoin.data.network.api.AlbumApiService
 import fr.leboncoin.data.repository.AlbumRepository
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.dsl.module
 import retrofit2.Retrofit
-import retrofit2.create
 
-class DataDependencies {
+val DataModule = module {
 
-    val albumsRepository: AlbumRepository by lazy { AlbumRepository(apiService) }
+    single {
+        HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+    }
 
-    private val apiService: AlbumApiService by lazy { retrofit.create<AlbumApiService>() }
-
-    private val retrofit: Retrofit by lazy {
-        val contentType = "application/json".toMediaType()
-
-        Retrofit.Builder()
-            .baseUrl(AlbumApiService.BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(json.asConverterFactory(contentType))
+    single {
+        OkHttpClient.Builder()
+            .addInterceptor(get<HttpLoggingInterceptor>())
             .build()
     }
 
-    private val okHttpClient: OkHttpClient by lazy {
-        val builder = OkHttpClient.Builder()
-        if (!BuildConfig.DEBUG) {
-            val loggingInterceptor = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }
-            builder.addInterceptor(loggingInterceptor)
-        }
-        builder.build()
+    single {
+        Retrofit.Builder()
+            .baseUrl(AlbumApiService.BASE_URL)
+            .client(get<OkHttpClient>())
+            .addConverterFactory(get<Json>().asConverterFactory("application/json".toMediaType()))
+            .build()
     }
 
-    private val json: Json by lazy {
+    single {
+        get<Retrofit>().create(AlbumApiService::class.java)
+    }
+
+    single {
         Json {
             ignoreUnknownKeys = true
-            coerceInputValues = true
+            isLenient = true
+            encodeDefaults = true
         }
+    }
+
+    single {
+        AlbumRepository(get<AlbumApiService>())
     }
 }

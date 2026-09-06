@@ -3,23 +3,27 @@ package fr.leboncoin.androidrecruitmenttestapp
 import fr.leboncoin.data.network.api.AlbumApiService
 import fr.leboncoin.data.network.model.AlbumDto
 import fr.leboncoin.data.repository.AlbumRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.logging.Logger
 
 class AlbumsViewModelTest {
 
     @Test
-    fun loadsAlbums_emitsNonEmptyList() {
+    fun loadsAlbums_emitsNonEmptyList() = runBlocking {
         val fakeService = object : AlbumApiService {
             override suspend fun getAlbums(): List<AlbumDto> = listOf(
                 AlbumDto(id = 1, albumId = 1, title = "t", url = "u", thumbnailUrl = "tu")
             )
         }
         val repository = AlbumRepository(fakeService)
-        val vm = AlbumsViewModel(Logger.getGlobal(), repository)
+        val vm = AlbumsViewModel(repository)
 
-        assertTrue("Expected albums to be loaded", vm.albums.value.isNotEmpty())
+        vm.loadAlbums()
+
+        val albums = vm.albums.first()
+        assertTrue("Expected albums to be loaded", albums.isNotEmpty())
     }
 }
 

@@ -9,16 +9,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.adevinta.spark.SparkTheme
 import com.adevinta.spark.components.image.Illustration
-import fr.leboncoin.androidrecruitmenttestapp.di.AppDependenciesProvider
 import fr.leboncoin.androidrecruitmenttestapp.utils.AnalyticsHelper
+import org.koin.android.ext.android.inject
 
 class DetailsActivity : ComponentActivity() {
 
-    private val analyticsHelper: AnalyticsHelper by lazy {
-        val dependencies = (application as AppDependenciesProvider).dependencies
-        dependencies.analyticsHelper
-    }
-
+    private val analyticsHelper: AnalyticsHelper by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
