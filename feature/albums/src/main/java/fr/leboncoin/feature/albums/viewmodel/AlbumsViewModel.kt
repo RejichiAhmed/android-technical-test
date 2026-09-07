@@ -1,4 +1,4 @@
-package fr.leboncoin.androidrecruitmenttestapp
+package fr.leboncoin.feature.albums.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -26,12 +26,4 @@ class AlbumsViewModel(
         }
     }
 
-    class Factory(
-        private val repository: AlbumRepository,
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return AlbumsViewModel(repository) as T
-        }
-    }
 }

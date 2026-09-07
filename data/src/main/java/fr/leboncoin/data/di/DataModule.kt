@@ -45,6 +45,6 @@ val DataModule = module {
     }
 
     single {
-        AlbumRepository(get<AlbumApiService>())
+        AlbumRepository(get(), get<AlbumApiService>())
     }
 }
