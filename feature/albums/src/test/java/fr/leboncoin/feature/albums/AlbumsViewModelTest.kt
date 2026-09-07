@@ -39,15 +39,15 @@ private class FakeAlbumRepository(
 
     override suspend fun observeAlbums(): Flow<List<AlbumDto>> = albumsFlow
 
-    override suspend fun observeFavoriteAlbumIds(): Flow<Set<Int>> = favoritesFlow
+    override suspend fun observeFavoriteTrackIds(): Flow<Set<Int>> = favoritesFlow
 
     override suspend fun refreshAlbums(): Resource<Unit> = onRefresh()
 
-    override suspend fun toggleFavorite(albumId: Int): Resource<Unit> {
-        val next = if (favoritesFlow.value.contains(albumId)) {
-            favoritesFlow.value - albumId
+    override suspend fun toggleFavorite(trackId: Int): Resource<Unit> {
+        val next = if (favoritesFlow.value.contains(trackId)) {
+            favoritesFlow.value - trackId
         } else {
-            favoritesFlow.value + albumId
+            favoritesFlow.value + trackId
         }
         favoritesFlow.value = next
         return Resource.Success(Unit)
@@ -124,10 +124,10 @@ class AlbumsViewModelTest {
         val vm = AlbumsViewModel(repository)
         vm.state.first { it.albums.isNotEmpty() }
 
-        vm.onAction(AlbumsAction.OnFavoriteToggle(albumId = 2))
+        vm.onAction(AlbumsAction.OnFavoriteToggle(trackId = 2))
 
         val state = vm.state.value
-        assertEquals(setOf(1, 2), state.favoriteAlbumIds)
+        assertEquals(setOf(1, 2), state.favoriteTrackIds)
         assertTrue(state.albums.first { it.id == 2 }.isFavorite)
     }
 

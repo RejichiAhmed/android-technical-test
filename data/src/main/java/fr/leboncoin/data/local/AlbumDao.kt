@@ -22,15 +22,15 @@ interface AlbumDao {
     @Query("DELETE FROM albums")
     suspend fun clearAll()
 
-    @Query("SELECT albumId FROM favorite_albums")
-    fun observeFavoriteAlbumIds(): Flow<List<Int>>
+    @Query("SELECT trackId FROM favorite_albums")
+    fun observeFavoriteTrackIds(): Flow<List<Int>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFavorite(favorite: FavoriteAlbumEntity)
 
-    @Query("DELETE FROM favorite_albums WHERE albumId = :albumId")
-    suspend fun removeFavorite(albumId: Int)
+    @Query("DELETE FROM favorite_albums WHERE trackId = :trackId")
+    suspend fun removeFavorite(trackId: Int)
 
-    @Query("SELECT EXISTS(SELECT 1 FROM favorite_albums WHERE albumId = :albumId)")
-    suspend fun isFavorite(albumId: Int): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM favorite_albums WHERE trackId = :trackId)")
+    suspend fun isFavorite(trackId: Int): Boolean
 }

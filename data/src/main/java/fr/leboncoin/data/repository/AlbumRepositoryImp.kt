@@ -18,8 +18,8 @@ class AlbumRepositoryImp(
     override suspend fun observeAlbums(): Flow<List<AlbumDto>> =
         dao.getAll().map { entities -> entities.map { it.toDto() } }
 
-    override suspend fun observeFavoriteAlbumIds(): Flow<Set<Int>> =
-        dao.observeFavoriteAlbumIds().map { list -> list.toSet() }
+    override suspend fun observeFavoriteTrackIds(): Flow<Set<Int>> =
+        dao.observeFavoriteTrackIds().map { list -> list.toSet() }
 
     override suspend fun refreshAlbums(): Resource<Unit> = try {
         val remote = api.getAlbums()
@@ -30,12 +30,12 @@ class AlbumRepositoryImp(
         Resource.Error(e.message ?: "Unable to refresh albums.")
     }
 
-    override suspend fun toggleFavorite(albumId: Int): Resource<Unit> = try {
-        val isFavorite = dao.isFavorite(albumId)
+    override suspend fun toggleFavorite(trackId: Int): Resource<Unit> = try {
+        val isFavorite = dao.isFavorite(trackId)
         if (isFavorite) {
-            dao.removeFavorite(albumId)
+            dao.removeFavorite(trackId)
         } else {
-            dao.insertFavorite(FavoriteAlbumEntity(albumId))
+            dao.insertFavorite(FavoriteAlbumEntity(trackId))
         }
         Resource.Success(Unit)
     } catch (e: Exception) {

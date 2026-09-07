@@ -36,7 +36,7 @@ class AlbumsViewModel(
                     _events.send(AlbumsEvent.NavigateToDetail(action.albumId))
                 }
             }
-            is AlbumsAction.OnFavoriteToggle -> toggleFavorite(action.albumId)
+            is AlbumsAction.OnFavoriteToggle -> toggleFavorite(action.trackId)
             AlbumsAction.OnBackClick -> {
                 viewModelScope.launch {
                     _events.send(AlbumsEvent.NavigateBack)
@@ -52,27 +52,27 @@ class AlbumsViewModel(
         viewModelScope.launch {
             combine(
                 repository.observeAlbums(),
-                repository.observeFavoriteAlbumIds(),
+                repository.observeFavoriteTrackIds(),
             ) { dtos, favoriteIds ->
                 dtos to favoriteIds
             }.collect { (dtos, favoriteIds) ->
                 val albums = dtos.map { dto ->
-                    dto.toAlbumUi(isFavorite = favoriteIds.contains(dto.albumId))
+                    dto.toAlbumUi(isFavorite = favoriteIds.contains(dto.id))
                 }
                 _state.update {
                     it.copy(
                         albums = albums,
                         availableCategories = albums.map { album -> album.albumId }.distinct().sorted(),
-                        favoriteAlbumIds = favoriteIds,
+                        favoriteTrackIds = favoriteIds,
                     )
                 }
             }
         }
     }
 
-    private fun toggleFavorite(albumId: Int) {
+    private fun toggleFavorite(trackId: Int) {
         viewModelScope.launch {
-            when (val result = repository.toggleFavorite(albumId)) {
+            when (val result = repository.toggleFavorite(trackId)) {
                 is Resource.Success -> Unit
                 is Resource.Error -> {
                     _state.update { it.copy(error = result.message ?: "Unable to update favorite state") }

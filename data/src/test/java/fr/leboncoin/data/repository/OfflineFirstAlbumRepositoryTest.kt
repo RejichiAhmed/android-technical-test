@@ -43,17 +43,17 @@ private class FakeAlbumDao(
         entities.value = emptyList()
     }
 
-    override fun observeFavoriteAlbumIds(): Flow<List<Int>> = favorites.map { it.toList() }
+    override fun observeFavoriteTrackIds(): Flow<List<Int>> = favorites.map { it.toList() }
 
     override suspend fun insertFavorite(favorite: FavoriteAlbumEntity) {
-        favorites.value = favorites.value + favorite.albumId
+        favorites.value = favorites.value + favorite.trackId
     }
 
-    override suspend fun removeFavorite(albumId: Int) {
-        favorites.value = favorites.value - albumId
+    override suspend fun removeFavorite(trackId: Int) {
+        favorites.value = favorites.value - trackId
     }
 
-    override suspend fun isFavorite(albumId: Int): Boolean = favorites.value.contains(albumId)
+    override suspend fun isFavorite(trackId: Int): Boolean = favorites.value.contains(trackId)
 }
 
 private fun fakeApiService(
@@ -126,10 +126,10 @@ class OfflineFirstAlbumRepositoryTest {
         val result = repository.toggleFavorite(2)
 
         assertTrue(result is Resource.Success)
-        assertEquals(setOf(1, 2), repository.observeFavoriteAlbumIds().first())
+        assertEquals(setOf(1, 2), repository.observeFavoriteTrackIds().first())
 
         val toggledBack = repository.toggleFavorite(1)
         assertTrue(toggledBack is Resource.Success)
-        assertEquals(setOf(2), repository.observeFavoriteAlbumIds().first())
+        assertEquals(setOf(2), repository.observeFavoriteTrackIds().first())
     }
 }

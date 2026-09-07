@@ -9,7 +9,7 @@ data class AlbumsState(
     val selectedAlbumId: Int? = null,
     val availableCategories: List<Int> = emptyList(), // distinct albumIds, sorted ascending
     val selectedCategory: Int? = null,                // null = "All"
-    val favoriteAlbumIds: Set<Int> = emptySet(),
+    val favoriteTrackIds: Set<Int> = emptySet(),
 )
 
 val AlbumsState.visibleAlbums: List<AlbumUi>
