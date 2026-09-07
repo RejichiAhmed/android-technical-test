@@ -1,4 +1,4 @@
-package fr.leboncoin.androidrecruitmenttestapp.navigation
+package fr.leboncoin.feature.albums.navigation
 
 import kotlinx.serialization.Serializable
 
