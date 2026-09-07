@@ -27,13 +27,13 @@ import com.adevinta.spark.ExperimentalSparkApi
 import com.adevinta.spark.SparkTheme
 import com.adevinta.spark.components.card.Card
 import com.adevinta.spark.components.chips.ChipTinted
-import fr.leboncoin.data.network.model.AlbumDto
+import fr.leboncoin.feature.albums.presentation.AlbumUi
 
 @OptIn(ExperimentalSparkApi::class)
 @Composable
 fun AlbumItem(
-    album: AlbumDto,
-    onItemSelected : (AlbumDto) -> Unit,
+    album: AlbumUi,
+    onItemSelected : (AlbumUi) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -80,10 +80,10 @@ fun AlbumItem(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ChipTinted(
-                        text = "Album #${album.albumId}"
+                        text = album.albumLabel
                     )
                     ChipTinted(
-                        text = "Track #${album.id}"
+                        text = album.trackLabel
                     )
                 }
             }

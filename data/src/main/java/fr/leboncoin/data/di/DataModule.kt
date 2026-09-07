@@ -2,7 +2,7 @@ package fr.leboncoin.data.di
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import fr.leboncoin.data.network.api.AlbumApiService
-import fr.leboncoin.data.repository.AlbumRepository
+import fr.leboncoin.data.repository.AlbumRepositoryImp
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -45,6 +45,6 @@ val DataModule = module {
     }
 
     single {
-        AlbumRepository(get(), get<AlbumApiService>())
+        AlbumRepositoryImp(get(), get<AlbumApiService>())
     }
 }
