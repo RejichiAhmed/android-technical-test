@@ -1,6 +1,5 @@
 package fr.leboncoin.feature.albums.ui
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,7 +33,8 @@ import fr.leboncoin.feature.albums.presentation.AlbumUi
 @Composable
 fun AlbumItem(
     album: AlbumUi,
-    onItemSelected : (AlbumUi) -> Unit,
+    onItemSelected: (AlbumUi) -> Unit,
+    onFavoriteToggle: (AlbumUi) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -43,7 +44,10 @@ fun AlbumItem(
             .padding(horizontal = 16.dp),
         onClick = { onItemSelected(album) },
     ) {
-        Row {
+        Row(
+            modifier = Modifier.fillMaxHeight(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(album.thumbnailUrl)
@@ -55,37 +59,39 @@ fun AlbumItem(
                     .crossfade(true)
                     .build(),
                 contentDescription = album.title,
-                modifier = modifier
+                modifier = Modifier
                     .fillMaxHeight()
                     .aspectRatio(1f),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
             )
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .padding(14.dp),
             ) {
                 Text(
                     text = album.title,
                     style = SparkTheme.typography.caption,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
 
                 Spacer(Modifier.weight(1f))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ChipTinted(
-                        text = album.albumLabel
-                    )
-                    ChipTinted(
-                        text = album.trackLabel
-                    )
+                    ChipTinted(text = album.albumLabel)
+                    ChipTinted(text = album.trackLabel)
                 }
+            }
+
+            IconButton(
+                onClick = { onFavoriteToggle(album) },
+            ) {
+                Text(text = if (album.isFavorite) "★" else "☆")
             }
         }
     }

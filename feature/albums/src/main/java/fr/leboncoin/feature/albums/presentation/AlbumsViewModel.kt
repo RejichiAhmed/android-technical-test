@@ -2,12 +2,12 @@ package fr.leboncoin.feature.albums.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.leboncoin.data.network.model.AlbumDto
 import fr.leboncoin.data.network.util.Resource
 import fr.leboncoin.data.repository.AlbumRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -18,7 +18,6 @@ class AlbumsViewModel(
 
     private val _state = MutableStateFlow(AlbumsState())
     val state = _state.asStateFlow()
-
 
     private val _events = Channel<AlbumsEvent>()
     val events = _events.receiveAsFlow()
@@ -37,6 +36,7 @@ class AlbumsViewModel(
                     _events.send(AlbumsEvent.NavigateToDetail(action.albumId))
                 }
             }
+            is AlbumsAction.OnFavoriteToggle -> toggleFavorite(action.albumId)
             AlbumsAction.OnBackClick -> {
                 viewModelScope.launch {
                     _events.send(AlbumsEvent.NavigateBack)
@@ -50,12 +50,32 @@ class AlbumsViewModel(
 
     private fun observeAlbums() {
         viewModelScope.launch {
-            repository.observeAlbums().collect { dtos ->
+            combine(
+                repository.observeAlbums(),
+                repository.observeFavoriteAlbumIds(),
+            ) { dtos, favoriteIds ->
+                dtos to favoriteIds
+            }.collect { (dtos, favoriteIds) ->
+                val albums = dtos.map { dto ->
+                    dto.toAlbumUi(isFavorite = favoriteIds.contains(dto.albumId))
+                }
                 _state.update {
                     it.copy(
-                        albums = dtos.map { dto -> dto.toAlbumUi() },
-                        availableCategories = dtos.map { dto -> dto.albumId }.distinct().sorted(),
+                        albums = albums,
+                        availableCategories = albums.map { album -> album.albumId }.distinct().sorted(),
+                        favoriteAlbumIds = favoriteIds,
                     )
+                }
+            }
+        }
+    }
+
+    private fun toggleFavorite(albumId: Int) {
+        viewModelScope.launch {
+            when (val result = repository.toggleFavorite(albumId)) {
+                is Resource.Success -> Unit
+                is Resource.Error -> {
+                    _state.update { it.copy(error = result.message ?: "Unable to update favorite state") }
                 }
             }
         }

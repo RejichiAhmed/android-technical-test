@@ -48,7 +48,9 @@ val DataModule = module {
     }
 
     single {
-        Room.databaseBuilder(get(), AppDatabase::class.java, "albums.db").build()
+        Room.databaseBuilder(get(), AppDatabase::class.java, "albums.db")
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     single {

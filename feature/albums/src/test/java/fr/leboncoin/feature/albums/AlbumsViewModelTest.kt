@@ -28,24 +28,37 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * In-memory fake of [AlbumRepository]: [observeAlbums] is backed by a [MutableStateFlow]
- * (seed/[emit] to simulate whatever Room currently holds), and [refreshAlbums] behavior
- * is configurable via [onRefresh] so tests can simulate success/error/slow network calls.
- */
 private class FakeAlbumRepository(
     initialAlbums: List<AlbumDto> = emptyList(),
+    initialFavoriteAlbumIds: Set<Int> = emptySet(),
 ) : AlbumRepository {
 
     private val albumsFlow = MutableStateFlow(initialAlbums)
+    private val favoritesFlow = MutableStateFlow(initialFavoriteAlbumIds)
     var onRefresh: suspend () -> Resource<Unit> = { Resource.Success(Unit) }
 
-    override fun observeAlbums(): Flow<List<AlbumDto>> = albumsFlow
+    override suspend fun observeAlbums(): Flow<List<AlbumDto>> = albumsFlow
+
+    override suspend fun observeFavoriteAlbumIds(): Flow<Set<Int>> = favoritesFlow
 
     override suspend fun refreshAlbums(): Resource<Unit> = onRefresh()
 
+    override suspend fun toggleFavorite(albumId: Int): Resource<Unit> {
+        val next = if (favoritesFlow.value.contains(albumId)) {
+            favoritesFlow.value - albumId
+        } else {
+            favoritesFlow.value + albumId
+        }
+        favoritesFlow.value = next
+        return Resource.Success(Unit)
+    }
+
     fun emit(albums: List<AlbumDto>) {
         albumsFlow.value = albums
+    }
+
+    fun emitFavorites(ids: Set<Int>) {
+        favoritesFlow.value = ids
     }
 }
 
@@ -74,7 +87,7 @@ class AlbumsViewModelTest {
 
     @Test
     fun onLoadAlbums_populatesStateFromRepositoryFlow() = runTest {
-        val repository = FakeAlbumRepository()
+        val repository = FakeAlbumRepository(initialFavoriteAlbumIds = setOf(2))
         val vm = AlbumsViewModel(repository)
         assertTrue("Expected empty albums before any emission", vm.state.value.albums.isEmpty())
 
@@ -83,7 +96,10 @@ class AlbumsViewModelTest {
 
         val state = vm.state.first { it.albums.isNotEmpty() }
         assertEquals(
-            listOf(albumDto(1).toAlbumUi(), albumDto(2).toAlbumUi()),
+            listOf(
+                albumDto(1).toAlbumUi(isFavorite = false),
+                albumDto(2).toAlbumUi(isFavorite = true),
+            ),
             state.albums,
         )
     }
@@ -97,6 +113,22 @@ class AlbumsViewModelTest {
 
         val event = vm.events.first()
         assertEquals(AlbumsEvent.NavigateToDetail(albumId = 1), event)
+    }
+
+    @Test
+    fun onFavoriteToggle_updatesFavoriteState() = runTest {
+        val repository = FakeAlbumRepository(
+            initialAlbums = listOf(albumDto(1), albumDto(2)),
+            initialFavoriteAlbumIds = setOf(1),
+        )
+        val vm = AlbumsViewModel(repository)
+        vm.state.first { it.albums.isNotEmpty() }
+
+        vm.onAction(AlbumsAction.OnFavoriteToggle(albumId = 2))
+
+        val state = vm.state.value
+        assertEquals(setOf(1, 2), state.favoriteAlbumIds)
+        assertTrue(state.albums.first { it.id == 2 }.isFavorite)
     }
 
     @Test

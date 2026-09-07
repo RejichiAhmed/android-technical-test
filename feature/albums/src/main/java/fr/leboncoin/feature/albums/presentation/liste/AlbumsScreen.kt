@@ -114,6 +114,7 @@ fun AlbumsListScreen(
                             AlbumItem(
                                 album = album,
                                 onItemSelected = { onAction(AlbumsAction.OnAlbumClick(it.id)) },
+                                onFavoriteToggle = { onAction(AlbumsAction.OnFavoriteToggle(it.id)) },
                             )
                         }
                     }

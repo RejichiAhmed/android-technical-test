@@ -2,6 +2,7 @@ package fr.leboncoin.data.repository
 
 import fr.leboncoin.data.local.AlbumDao
 import fr.leboncoin.data.local.AlbumEntity
+import fr.leboncoin.data.local.FavoriteAlbumEntity
 import fr.leboncoin.data.local.toDto
 import fr.leboncoin.data.network.api.AlbumApiService
 import fr.leboncoin.data.network.model.AlbumDto
@@ -9,6 +10,7 @@ import fr.leboncoin.data.network.util.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -19,9 +21,13 @@ import org.junit.Test
  * In-memory fake of [AlbumDao] backed by a [MutableStateFlow], so [getAll] behaves
  * like Room's reactive query without needing an actual (Robolectric/instrumented) database.
  */
-private class FakeAlbumDao(seed: List<AlbumEntity> = emptyList()) : AlbumDao {
+private class FakeAlbumDao(
+    seed: List<AlbumEntity> = emptyList(),
+    favoriteIds: Set<Int> = emptySet(),
+) : AlbumDao {
 
     private val entities = MutableStateFlow(seed)
+    private val favorites = MutableStateFlow(favoriteIds)
 
     override fun getAll(): Flow<List<AlbumEntity>> = entities
 
@@ -36,6 +42,18 @@ private class FakeAlbumDao(seed: List<AlbumEntity> = emptyList()) : AlbumDao {
     override suspend fun clearAll() {
         entities.value = emptyList()
     }
+
+    override fun observeFavoriteAlbumIds(): Flow<List<Int>> = favorites.map { it.toList() }
+
+    override suspend fun insertFavorite(favorite: FavoriteAlbumEntity) {
+        favorites.value = favorites.value + favorite.albumId
+    }
+
+    override suspend fun removeFavorite(albumId: Int) {
+        favorites.value = favorites.value - albumId
+    }
+
+    override suspend fun isFavorite(albumId: Int): Boolean = favorites.value.contains(albumId)
 }
 
 private fun fakeApiService(
@@ -98,5 +116,20 @@ class OfflineFirstAlbumRepositoryTest {
         assertTrue("Expected Resource.Error", result is Resource.Error)
         assertNotNull((result as Resource.Error).message)
         assertEquals(cached.map { it.toDto() }, repository.observeAlbums().first())
+    }
+
+    @Test
+    fun toggleFavorite_updatesAndRestoresFavoriteIds() = runTest {
+        val dao = FakeAlbumDao(favoriteIds = setOf(1))
+        val repository = AlbumRepositoryImp(dao, fakeApiService())
+
+        val result = repository.toggleFavorite(2)
+
+        assertTrue(result is Resource.Success)
+        assertEquals(setOf(1, 2), repository.observeFavoriteAlbumIds().first())
+
+        val toggledBack = repository.toggleFavorite(1)
+        assertTrue(toggledBack is Resource.Success)
+        assertEquals(setOf(2), repository.observeFavoriteAlbumIds().first())
     }
 }

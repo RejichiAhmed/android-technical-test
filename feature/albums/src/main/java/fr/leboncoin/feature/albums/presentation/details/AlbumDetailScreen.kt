@@ -2,9 +2,12 @@ package fr.leboncoin.feature.albums.presentation.details
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -79,7 +82,18 @@ fun AlbumDetailScreen(
             return
         }
 
-        Text(text = album.title)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = album.title)
+            IconButton(
+                onClick = { onAction(AlbumsAction.OnFavoriteToggle(album.id)) },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text(text = if (album.isFavorite) "★" else "☆")
+            }
+        }
         Text(text = album.albumLabel)
         Text(text = album.trackLabel)
         ButtonFilled(

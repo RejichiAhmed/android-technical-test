@@ -9,6 +9,7 @@ data class AlbumsState(
     val selectedAlbumId: Int? = null,
     val availableCategories: List<Int> = emptyList(), // distinct albumIds, sorted ascending
     val selectedCategory: Int? = null,                // null = "All"
+    val favoriteAlbumIds: Set<Int> = emptySet(),
 )
 
 val AlbumsState.visibleAlbums: List<AlbumUi>
@@ -22,15 +23,17 @@ data class AlbumUi(
     val thumbnailUrl: String,
     val albumLabel: String,
     val trackLabel: String,
+    val isFavorite: Boolean = false,
 )
 
-fun AlbumDto.toAlbumUi(): AlbumUi = AlbumUi(
+fun AlbumDto.toAlbumUi(isFavorite: Boolean = false): AlbumUi = AlbumUi(
     id = id,
     albumId = albumId,
     title = title,
     thumbnailUrl = thumbnailUrl,
     albumLabel = "Album #$albumId",
     trackLabel = "Track #$id",
+    isFavorite = isFavorite,
 )
 
 /**
