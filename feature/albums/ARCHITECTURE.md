@@ -33,7 +33,12 @@ data class AlbumsState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedAlbumId: Int? = null,
+    val availableCategories: List<Int> = emptyList(), // distinct albumIds, sorted ascending
+    val selectedCategory: Int? = null,                // null = "All"
 )
+
+val AlbumsState.visibleAlbums: List<AlbumUi>
+    get() = selectedCategory?.let { cat -> albums.filter { it.albumId == cat } } ?: albums
 ```
 
 - `error` is a plain `String?` rather than `UiText`, because this project has
@@ -45,6 +50,9 @@ data class AlbumsState(
 - `selectedAlbumId` tracks the last-clicked album purely for potential UI
   affordances (e.g. highlighting); the actual navigation argument is still
   passed via the type-safe route (`AlbumDetailRoute.albumId`).
+- `availableCategories` / `selectedCategory` / `visibleAlbums` back the
+  **category top bar** (see "Offline Persistence & Category Filtering"
+  below) — `albumId` is treated as the "category" each item belongs to.
 
 ### Action (Intent)
 
@@ -54,13 +62,17 @@ sealed interface AlbumsAction {
     data class OnAlbumClick(val albumId: Int) : AlbumsAction
     data object OnBackClick : AlbumsAction
     data object OnRetryClick : AlbumsAction
+    data class OnCategorySelected(val albumId: Int?) : AlbumsAction // null = All
 }
 ```
 
-`OnLoadAlbums` is idempotent — `loadAlbums()` skips re-fetching if albums are
-already loaded and there's no error, so navigating back and forth between
-list/detail (which re-enters the list composable) does not trigger redundant
-network calls. `OnRetryClick` forces a reload, for a future retry-on-error UI.
+`OnLoadAlbums` and `OnRetryClick` both trigger `refreshAlbums()` (a network
+sync into Room — see below) unconditionally; there is no longer an in-memory
+idempotency guard, because **Room's `Flow` is the actual source of truth for
+`albums`**, not the network call. Re-entering the list screen re-triggers a
+refresh (cheap, and always safe since a failed refresh never clears
+`albums` — see "Offline Persistence" below). `OnCategorySelected` sets the
+active category filter (`null` = "All").
 
 ### Event (one-time side effects)
 
@@ -187,6 +199,101 @@ non-existent shared module.
 
 ---
 
+## Offline Persistence & Category Filtering
+
+Added after the initial MVI refactor, to satisfy: data available offline
+(including after a full app restart), loading/error UI, and a category top
+bar. Full phase-by-phase plan: `ALBUMS_PERSISTENCE_PLAN.md` (repo root).
+
+### Room as the source of truth (`:data`)
+
+- `data/local/AlbumEntity.kt` — `@Entity(tableName = "albums")`, `id` as
+  `@PrimaryKey`; `AlbumDto.toEntity()` / `AlbumEntity.toDto()` mappers
+  colocated in the same file.
+- `data/local/AlbumDao.kt` — `getAll(): Flow<List<AlbumEntity>>`,
+  `getById(id): AlbumEntity?`, `upsertAll(albums)` (`@Upsert`), `clearAll()`.
+- `data/local/AppDatabase.kt` — `@Database(entities = [AlbumEntity::class], version = 1)`.
+- `AlbumRepository` interface reshaped from a single `getAllAlbums()` suspend
+  call to two responsibilities:
+  ```kotlin
+  interface AlbumRepository {
+      fun observeAlbums(): Flow<List<AlbumDto>>
+      suspend fun refreshAlbums(): Resource<Unit>
+  }
+  ```
+- `OfflineFirstAlbumRepository` (replaces the old `AlbumRepositoryImp`) —
+  `observeAlbums()` streams straight from `AlbumDao.getAll()` mapped to
+  `AlbumDto`; `refreshAlbums()` fetches from `AlbumApiService`, upserts into
+  Room on success, and **on failure returns `Resource.Error` without
+  touching Room** — so previously cached data is never wiped by a failed
+  network call. Named per the `android-data-layer` skill's convention for
+  multi-source repositories (describes *how it behaves*, not `...Impl`).
+- Registered in `DataModule.kt` as Koin singletons: `AppDatabase` (via
+  `Room.databaseBuilder(androidContext(), ...)`), `AlbumDao`, and
+  `single<AlbumRepository> { OfflineFirstAlbumRepository(get(), get()) }`.
+  Required adding `implementation(libs.koin.android)` to
+  `data/build.gradle.kts` (previously only `koin-core`) for `androidContext()`
+  inside the module DSL.
+
+### ViewModel: Room `Flow` + network refresh, decoupled
+
+`AlbumsViewModel`'s `init` block starts a single
+`viewModelScope.launch { repository.observeAlbums().collect { ... } }` that
+owns `state.albums` and derives `state.availableCategories` (distinct, sorted
+`albumId`s) on every emission — this fires immediately with whatever Room
+already has cached, even fully offline or right after a process restart,
+before any network call completes.
+
+`refreshAlbums()` (triggered by `OnLoadAlbums`/`OnRetryClick`) only ever
+touches `state.isLoading` and `state.error` — it never writes to
+`state.albums` directly. That field is exclusively owned by the Room
+collector above. This is what guarantees a failed refresh (offline, server
+error, etc.) surfaces `state.error` **without erasing already-visible cached
+albums**.
+
+### Category filtering
+
+`state.visibleAlbums` (extension property) filters `state.albums` by
+`state.selectedCategory` (`albumId`), or returns everything when `null`
+("All"). `AlbumsListScreen` renders `state.visibleAlbums`, never `state.albums`
+directly.
+
+### UI states (`AlbumsListScreen`)
+
+Rendered in priority order inside the `Scaffold` body:
+1. `isLoading && albums.isEmpty()` → full-screen `CircularProgressIndicator`.
+2. `error != null && visibleAlbums.isEmpty()` → full-screen error + Spark
+   `ButtonFilled` "Retry" (`OnRetryClick`).
+3. Otherwise → an `ErrorBanner` on top (only if `error != null`, coexisting
+   with the list below it so stale/cached data stays visible) + the
+   `LazyColumn` over `visibleAlbums`, or an empty-category message.
+
+`Scaffold`'s `topBar` hosts a horizontally scrollable row of Spark
+`ChipTinted` chips — "All" plus one per `availableCategories` (label
+`"Album #<id>"`, reusing the existing convention). Selection is indicated via
+`ChipIntent.Main` (selected) vs `ChipIntent.Basic` (unselected), since Spark
+1.4.0's `ChipTinted` has no dedicated `selected: Boolean` param. Tapping a
+chip dispatches `OnCategorySelected`.
+
+`AlbumDetailScreen` also defensively shows a loading indicator instead of
+"Album not found" when `state.isLoading && state.findAlbum(albumId) == null`,
+to avoid a false-negative flash on first entry before Room/network has
+delivered data yet.
+
+### Tests added
+
+- `:data` — `OfflineFirstAlbumRepositoryTest` (fake `AlbumDao` + fake
+  `AlbumApiService`, no Robolectric/instrumented DB needed since the DAO
+  interface itself is faked): `observeAlbums()` reflects the fake DAO,
+  `refreshAlbums()` success upserts, `refreshAlbums()` failure returns
+  `Resource.Error` **and leaves the fake DAO's contents untouched**.
+- `:feature:albums` — `AlbumsViewModelTest` rewritten against a fake
+  `AlbumRepository`: state population from the repository's `Flow`,
+  `isLoading` toggling around `refreshAlbums()`, error-without-cache-loss,
+  category filtering (`visibleAlbums`), and `availableCategories` derivation.
+
+---
+
 ## `:app` Module Changes
 
 `app/.../ui/AppScreen.kt` no longer imports or resolves `AlbumsViewModel` at
@@ -232,21 +339,34 @@ inside `AppScreen.kt`.
 | Deleted | `vm/AlbumsViewModel.kt` (legacy VM) |
 | Deleted | `presentation/liste/AlbumsUiState.kt`, `presentation/liste/AlbumsEvent.kt` (dead stubs) |
 | Deleted | `presentation/details/AlbumsDetailsUiState.kt`, `presentation/details/AlbumsDetailsEvent.kt` (dead stubs) |
+| Created | `data/local/AlbumEntity.kt`, `data/local/AlbumDao.kt`, `data/local/AppDatabase.kt` |
+| Created | `data/repository/OfflineFirstAlbumRepository.kt` (replaces `AlbumRepositoryImp.kt`, deleted) |
+| Modified | `data/repository/AlbumRepository.kt` (`observeAlbums()` + `refreshAlbums()` interface shape) |
+| Modified | `data/di/DataModule.kt` (Room DB/DAO singletons, repository rebinding) |
+| Modified | `data/build.gradle.kts` (added `koin-android`, `kotlinx-coroutines-test`) |
+| Modified | `presentation/liste/AlbumsScreen.kt` (category top bar, loading/error/empty states) |
+| Modified | `presentation/details/AlbumDetailScreen.kt` (defensive loading state) |
+| Created | `data/src/test/.../OfflineFirstAlbumRepositoryTest.kt` |
+| Modified | `feature/albums/src/test/.../AlbumsViewModelTest.kt` (offline-first + category tests) |
 
 ---
 
 ## Validation
 
-- `:feature:albums:compileDebugKotlin` — ✅
-- `:feature:albums:test` — ✅ 3/3 passing
-- `:app:compileDebugKotlin` — ✅
-- `:app:assembleDebug` — ✅ `BUILD SUCCESSFUL`
+- `:data:compileDebugKotlin` / `:feature:albums:compileDebugKotlin` / `:app:compileDebugKotlin` — ✅
+- `:data:test` — ✅ 3/3 passing (`OfflineFirstAlbumRepositoryTest`)
+- `:feature:albums:test` — ✅ 7/7 passing (`AlbumsViewModelTest`)
+- `:app:assembleDebug` — ✅ `BUILD SUCCESSFUL`, APK produced
 
 ## Follow-ups (not in scope here)
 
 - Introduce `UiText`/`core:presentation` if/when localized error strings are
   needed.
-- Add a retry UI affordance wired to `AlbumsAction.OnRetryClick` (action
-  already exists, no UI triggers it yet).
 - Consider `SavedStateHandle` if the detail screen ever needs to survive
   process death independently of the shared list state.
+- Room schema export directory isn't configured yet (benign KSP warning) —
+  set `exportSchema = false` or `room.schemaLocation` if schema history
+  tracking becomes desirable.
+- `ChipTinted` selection is currently approximated via `ChipIntent`
+  (Main/Basic) since Spark 1.4.0 has no dedicated `selected` boolean param —
+  revisit if Spark adds one, or if the visual distinction needs refinement.

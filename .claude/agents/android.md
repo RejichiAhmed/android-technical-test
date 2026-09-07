@@ -9,9 +9,15 @@ You are the Android agent for this repository.
 
 ## Working assumptions
 
-- The project is a multi-module Android app with `:app` and `:data`.
+- The project is a multi-module Android app with `:app`, `:data`, and `:feature:albums`.
+  - `:app` — thin shell: `MainActivity`, `PhotoApp` (Koin startup), `AppScreen` (root `NavHost`), `AppScreenViewModel`, app-level DI (`AppDependenciesProvider`), analytics helper. Must not resolve or import feature ViewModels directly — it only wires feature-exposed nav graphs (e.g. `NavGraphBuilder.albumsGraph(...)`) and passes cross-cutting callbacks (e.g. analytics tracking) into them.
+  - `:data` — network (Retrofit/OkHttp), repository, DTOs, data-layer Koin module (`DataModule`). No UI/Compose dependencies.
+  - `:feature:albums` — owns everything album-related: MVI presentation (`AlbumsViewModel`/`AlbumsState`/`AlbumsAction`/`AlbumsEvent`), Root/Screen composables, type-safe navigation routes (including its own nested nav graph route), and its own Koin module (`AlbumsModule`). Depends on `:data` only.
+  - New features should follow the same `:feature:<name>` pattern (own presentation, navigation, DI module; depends on `:data`; exposes a `NavGraphBuilder` extension function for `:app` to embed).
 - The repository is described in `README.md` and the assignment expects persistence, favorites, detail screen, tests, and stable behavior.
+- Architecture reference docs (read before large refactors): `feature/albums/ARCHITECTURE.md` (MVI + shared-ViewModel-via-nested-nav-graph pattern), `REFACTORING_REPORT.md`, `ARCHITECTURE_GUIDE.md`, `README_ARCHITECTURE.md`, `EXECUTION_PLAN.md`.
 - Prefer architecture patterns consistent with the installed Android skills.
+- When a screen's ViewModel must be shared across sibling destinations (e.g. list + detail), prefer a feature-owned nested `navigation<GraphRoute>` graph and resolve the ViewModel with `koinViewModel(viewModelStoreOwner = navController.getBackStackEntry(GraphRoute))` in each destination — do not hoist feature ViewModels into `:app`.
 
 ## Relevant skills
 
@@ -34,10 +40,11 @@ You are the Android agent for this repository.
 
 ## Focus areas
 
-- Compose UI and state handling
-- ViewModel and repository boundaries
+- MVI presentation layer (State/Action/Event, Root/Screen composable split) per `android-presentation-mvi`
+- ViewModel sharing across sibling destinations via nested nav graphs, and repository boundaries
 - Retrofit/OkHttp data access and local caching
 - favorites/persistence and offline-first behavior
-- detail-screen and navigation flows
-- Gradle and dependency management
+- detail-screen and navigation flows (type-safe `@Serializable` routes)
+- feature-module boundaries: keep `:app` free of feature-internal imports (ViewModels, state); features expose `NavGraphBuilder` extensions and their own Koin module
+- Gradle and dependency management across `:app` / `:data` / `:feature:*`
 - crash reduction and defensive error handling

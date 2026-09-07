@@ -1,7 +1,10 @@
 package fr.leboncoin.data.di
 
+import androidx.room.Room
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import fr.leboncoin.data.local.AppDatabase
 import fr.leboncoin.data.network.api.AlbumApiService
+import fr.leboncoin.data.repository.AlbumRepository
 import fr.leboncoin.data.repository.AlbumRepositoryImp
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -45,6 +48,14 @@ val DataModule = module {
     }
 
     single {
+        Room.databaseBuilder(get(), AppDatabase::class.java, "albums.db").build()
+    }
+
+    single {
+        get<AppDatabase>().albumDao()
+    }
+
+    single<AlbumRepository> {
         AlbumRepositoryImp(get(), get<AlbumApiService>())
     }
 }

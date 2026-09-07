@@ -5,4 +5,5 @@ sealed interface AlbumsAction {
     data class OnAlbumClick(val albumId: Int) : AlbumsAction
     data object OnBackClick : AlbumsAction
     data object OnRetryClick : AlbumsAction
+    data class OnCategorySelected(val albumId: Int?) : AlbumsAction // null = All
 }

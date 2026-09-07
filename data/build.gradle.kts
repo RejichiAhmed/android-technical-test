@@ -46,10 +46,12 @@ android {
         implementation(libs.room.runtime)
         implementation(libs.room.ktx)
         implementation(libs.koin.core)
+        implementation(libs.koin.android)
 
         ksp(libs.room.compiler)
 
         testImplementation(libs.junit)
+        testImplementation(libs.kotlinx.coroutines.test)
         androidTestImplementation(libs.androidx.junit) // Useless dependency
         androidTestImplementation(libs.androidx.espresso.core) // Useless dependency
     }
