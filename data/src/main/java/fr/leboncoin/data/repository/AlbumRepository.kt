@@ -1,12 +1,9 @@
 package fr.leboncoin.data.repository
 
-import fr.leboncoin.data.network.api.AlbumApiService
-import kotlinx.coroutines.CoroutineScope
+import fr.leboncoin.data.network.model.AlbumDto
+import fr.leboncoin.data.network.util.Resource
 
-class AlbumRepository(
-    private val applicationScope: CoroutineScope,
-    private val albumApiService: AlbumApiService,
-) {
-    
-    suspend fun getAllAlbums() = albumApiService.getAlbums()
+
+interface AlbumRepository {
+    suspend fun getAllAlbums(): Resource<List<AlbumDto>>
 }
