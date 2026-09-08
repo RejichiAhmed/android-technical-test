@@ -15,5 +15,5 @@ val AppDependenciesProvider = module {
         (androidApplication() as PhotoApp).applicationScope
     }
 
-    viewModel { AppScreenViewModel() }
+    viewModel { AppScreenViewModel(get()) }
 }

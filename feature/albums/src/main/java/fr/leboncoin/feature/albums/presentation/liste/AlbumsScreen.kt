@@ -69,11 +69,6 @@ fun AlbumsListScreen(
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Albums") },
-            )
-        },
     ) { contentPadding ->
         Column(
             modifier = Modifier.fillMaxSize(),

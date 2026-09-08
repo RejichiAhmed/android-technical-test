@@ -21,6 +21,13 @@ class AnalyticsHelper {
         }
     }
 
+    fun trackTabSelection(tabName: String) {
+        context?.let {
+            // Simulate some analytics logging
+            println("Analytics: User selected tab - $tabName")
+        }
+    }
+
     fun trackScreenView(screenName: String) {
         context?.let {
             // Simulate some analytics logging

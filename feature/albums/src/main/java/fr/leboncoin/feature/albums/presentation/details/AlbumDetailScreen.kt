@@ -93,7 +93,7 @@ fun AlbumDetailScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Album Details") },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = { onAction(AlbumsAction.OnBackClick) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
