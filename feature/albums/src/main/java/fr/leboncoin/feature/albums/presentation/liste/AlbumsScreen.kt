@@ -1,6 +1,5 @@
 package fr.leboncoin.feature.albums.presentation.liste
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,11 +8,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,19 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.adevinta.spark.ExperimentalSparkApi
-import com.adevinta.spark.components.buttons.ButtonFilled
-import com.adevinta.spark.components.chips.ChipIntent
-import com.adevinta.spark.components.chips.ChipTinted
-import com.adevinta.spark.components.scaffold.Scaffold
 import fr.leboncoin.feature.albums.presentation.AlbumsAction
 import fr.leboncoin.feature.albums.presentation.AlbumsEvent
 import fr.leboncoin.feature.albums.presentation.AlbumsState
 import fr.leboncoin.feature.albums.presentation.AlbumsViewModel
+import fr.leboncoin.feature.albums.presentation.AlbumUi
 import fr.leboncoin.feature.albums.presentation.ObserveAsEvents
+import fr.leboncoin.feature.albums.presentation.albumGroupCards
 import fr.leboncoin.feature.albums.presentation.visibleAlbums
-import fr.leboncoin.feature.albums.ui.AlbumItem
+import fr.leboncoin.feature.albums.ui.AlbumGridCard
 import org.koin.androidx.compose.koinViewModel
+import com.adevinta.spark.components.buttons.ButtonFilled
 
 @Composable
 fun AlbumsListRoot(
@@ -60,7 +60,7 @@ fun AlbumsListRoot(
     )
 }
 
-@OptIn(ExperimentalSparkApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumsListScreen(
     state: AlbumsState,
@@ -70,84 +70,64 @@ fun AlbumsListScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            CategoryTopBar(
-                availableCategories = state.availableCategories,
-                selectedCategory = state.selectedCategory,
-                onCategorySelected = { onAction(AlbumsAction.OnCategorySelected(it)) },
+            TopAppBar(
+                title = { Text("Albums") },
             )
         },
     ) { contentPadding ->
-        when {
-            state.isLoading && state.albums.isEmpty() -> FullScreenLoading(contentPadding)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            when {
+                state.isLoading && state.albums.isEmpty() -> FullScreenLoading(contentPadding)
 
-            state.error != null && state.visibleAlbums.isEmpty() ->
-                FullScreenError(
-                    message = state.error,
-                    onRetry = { onAction(AlbumsAction.OnRetryClick) },
-                    contentPadding = contentPadding,
-                )
-
-            else -> Column(modifier = Modifier.fillMaxSize()) {
-                if (state.error != null) {
-                    ErrorBanner(
+                state.error != null && state.visibleAlbums.isEmpty() ->
+                    FullScreenError(
                         message = state.error,
                         onRetry = { onAction(AlbumsAction.OnRetryClick) },
-                    )
-                }
-
-                if (state.visibleAlbums.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("No albums in this category")
-                    }
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = contentPadding,
-                    ) {
-                        items(
-                            items = state.visibleAlbums,
-                            key = { album -> album.id }
-                        ) { album ->
-                            AlbumItem(
-                                album = album,
-                                onItemSelected = { onAction(AlbumsAction.OnAlbumClick(it.id)) },
-                                onFavoriteToggle = { onAction(AlbumsAction.OnFavoriteToggle(it.id)) },
-                            )
+                    )
+
+                else -> Column(modifier = Modifier.fillMaxSize()) {
+                    if (state.error != null) {
+                        ErrorBanner(
+                            message = state.error,
+                            onRetry = { onAction(AlbumsAction.OnRetryClick) },
+                        )
+                    }
+
+                    if (state.visibleAlbums.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("No albums in this category")
+                        }
+                    } else {
+                        // Grid of album group cards
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(12.dp),
+                            modifier = Modifier.padding(contentPadding),
+                        ) {
+                            items(
+                                items = state.albumGroupCards(),
+                                key = { card -> card.albumId }
+                            ) { card ->
+                                AlbumGridCard(
+                                    card = card,
+                                    onCardClick = {
+                                        // Navigate using the first track ID in this album
+                                        onAction(AlbumsAction.OnAlbumClick(card.firstTrackId))
+                                    },
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun CategoryTopBar(
-    availableCategories: List<Int>,
-    selectedCategory: Int?,
-    onCategorySelected: (Int?) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        ChipTinted(
-            text = "All",
-            intent = if (selectedCategory == null) ChipIntent.Main else ChipIntent.Basic,
-            onClick = { onCategorySelected(null) },
-        )
-        availableCategories.forEach { albumId ->
-            ChipTinted(
-                text = "Album #$albumId",
-                intent = if (selectedCategory == albumId) ChipIntent.Main else ChipIntent.Basic,
-                onClick = { onCategorySelected(albumId) },
-            )
         }
     }
 }
@@ -231,11 +211,12 @@ private fun AlbumsListScreenErrorWithCachePreview() {
     AlbumsListScreen(
         state = AlbumsState(
             albums = listOf(
-                fr.leboncoin.feature.albums.presentation.AlbumUi(
+                AlbumUi(
                     id = 1,
                     albumId = 1,
                     title = "Cached album",
                     thumbnailUrl = "",
+                    url = "",
                     albumLabel = "Album #1",
                     trackLabel = "Track #1",
                 )
@@ -261,13 +242,14 @@ private fun AlbumsListScreenErrorNoCachePreview() {
 private fun AlbumsListScreenPopulatedPreview() {
     AlbumsListScreen(
         state = AlbumsState(
-            albums = (1..3).map { id ->
-                fr.leboncoin.feature.albums.presentation.AlbumUi(
+            albums = (1..6).map { id ->
+                AlbumUi(
                     id = id,
-                    albumId = id,
+                    albumId = (id + 1) / 2, // 2 tracks per album
                     title = "Album title $id",
+                    url = "",
                     thumbnailUrl = "",
-                    albumLabel = "Album #$id",
+                    albumLabel = "Album #${(id + 1) / 2}",
                     trackLabel = "Track #$id",
                 )
             },

@@ -20,6 +20,7 @@ data class AlbumUi(
     val id: Int,
     val albumId: Int,
     val title: String,
+    val url: String,
     val thumbnailUrl: String,
     val albumLabel: String,
     val trackLabel: String,
@@ -30,6 +31,7 @@ fun AlbumDto.toAlbumUi(isFavorite: Boolean = false): AlbumUi = AlbumUi(
     id = id,
     albumId = albumId,
     title = title,
+    url = url,
     thumbnailUrl = thumbnailUrl,
     albumLabel = "Album #$albumId",
     trackLabel = "Track #$id",
@@ -43,4 +45,47 @@ fun AlbumDto.toAlbumUi(isFavorite: Boolean = false): AlbumUi = AlbumUi(
  * state populated by the list screen.
  */
 fun AlbumsState.findAlbum(albumId: Int): AlbumUi? = albums.firstOrNull { it.id == albumId }
+
+/**
+ * Groups visible albums by albumId (for grid display).
+ * Each key is an album ID, and the value is a list of all tracks in that album.
+ */
+fun AlbumsState.albumsByGroup(): Map<Int, List<AlbumUi>> =
+    visibleAlbums.groupBy { it.albumId }
+
+/**
+ * Returns a list of album group cards suitable for grid display.
+ * Each card contains the album ID, label, thumbnail (from first track),
+ * and track count for the album group.
+ */
+fun AlbumsState.albumGroupCards(): List<AlbumGroupCard> =
+    albumsByGroup()
+        .map { (albumId, tracks) ->
+            AlbumGroupCard(
+                albumId = albumId,
+                albumLabel = "Album #$albumId",
+                thumbnailUrl = tracks.firstOrNull()?.thumbnailUrl ?: "",
+                trackCount = tracks.size,
+                firstTrackId = tracks.firstOrNull()?.id ?: 0,
+            )
+        }
+        .sortedBy { it.albumId }
+
+/**
+ * Returns all tracks for a given album ID from the current state.
+ * Filters based on the selected category (if any).
+ */
+fun AlbumsState.getTracksForAlbum(albumId: Int): List<AlbumUi> =
+    visibleAlbums.filter { it.albumId == albumId }
+
+/**
+ * Data class representing a groupable album card for grid display.
+ */
+data class AlbumGroupCard(
+    val albumId: Int,
+    val albumLabel: String,
+    val thumbnailUrl: String, // First track's thumbnail in this album
+    val trackCount: Int,
+    val firstTrackId: Int, // ID of the first track, used for navigation
+)
 
