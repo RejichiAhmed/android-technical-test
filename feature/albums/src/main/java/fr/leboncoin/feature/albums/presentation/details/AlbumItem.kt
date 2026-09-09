@@ -1,4 +1,4 @@
-package fr.leboncoin.feature.albums.ui
+package fr.leboncoin.feature.albums.presentation.details
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

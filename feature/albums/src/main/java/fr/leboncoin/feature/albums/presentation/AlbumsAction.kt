@@ -6,5 +6,4 @@ sealed interface AlbumsAction {
     data class OnFavoriteToggle(val trackId: Int) : AlbumsAction
     data object OnBackClick : AlbumsAction
     data object OnRetryClick : AlbumsAction
-    data class OnCategorySelected(val albumId: Int?) : AlbumsAction // null = All
 }
