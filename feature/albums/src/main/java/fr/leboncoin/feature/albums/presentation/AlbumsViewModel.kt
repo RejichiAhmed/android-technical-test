@@ -42,14 +42,12 @@ class AlbumsViewModel(
                     _events.send(AlbumsEvent.NavigateBack)
                 }
             }
-            is AlbumsAction.OnCategorySelected -> {
-                _state.update { it.copy(selectedCategory = action.albumId) }
-            }
         }
     }
 
     private fun observeAlbums() {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
             combine(
                 repository.observeAlbums(),
                 repository.observeFavoriteTrackIds(),
@@ -59,13 +57,16 @@ class AlbumsViewModel(
                 val albums = dtos.map { dto ->
                     dto.toAlbumUi(isFavorite = favoriteIds.contains(dto.id))
                 }
-                _state.update {
-                    it.copy(
-                        albums = albums,
-                        availableCategories = albums.map { album -> album.albumId }.distinct().sorted(),
-                        favoriteTrackIds = favoriteIds,
-                    )
+                computeAlbumGroupCards(albums).let {  list ->
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            albums = albums,
+                            albumGroupCards = list,
+                        )
+                    }
                 }
+
             }
         }
     }
@@ -95,5 +96,23 @@ class AlbumsViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * Groups albums by albumId and creates grid cards.
+     */
+    private fun computeAlbumGroupCards(albums: List<AlbumUi>): List<AlbumGroupCard> {
+        val grouped = albums.groupBy { it.albumId }
+        return grouped
+            .map { (albumId, tracks) ->
+                AlbumGroupCard(
+                    albumId = albumId,
+                    albumLabel = "Album #$albumId",
+                    thumbnailUrl = tracks.firstOrNull()?.thumbnailUrl ?: "",
+                    trackCount = tracks.size,
+                    firstTrackId = tracks.firstOrNull()?.id ?: 0,
+                )
+            }
+            .sortedBy { it.albumId }
     }
 }

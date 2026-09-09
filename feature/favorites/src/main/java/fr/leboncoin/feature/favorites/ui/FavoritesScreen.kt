@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -20,11 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import fr.leboncoin.feature.albums.ui.AlbumItem
-import fr.leboncoin.feature.favorites.presentation.AlbumUi
 import fr.leboncoin.feature.favorites.presentation.FavoritesAction
 import fr.leboncoin.feature.favorites.presentation.FavoritesState
 import fr.leboncoin.feature.favorites.presentation.FavoritesViewModel
+import com.adevinta.spark.components.buttons.ButtonFilled
+import fr.leboncoin.feature.albums.presentation.details.AlbumItem
+import fr.leboncoin.feature.favorites.presentation.toAlbumsAlbumUi
 
 @Composable
 fun FavoritesRoot(
@@ -77,7 +76,7 @@ fun FavoritesScreen(
                             text = state.error,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        Button(
+                        ButtonFilled(
                             onClick = { onAction(FavoritesAction.OnRetryClick) },
                         ) {
                             Text("Retry")
@@ -120,18 +119,3 @@ fun FavoritesScreen(
         }
     }
 }
-
-/**
- * Converts favorites AlbumUi to albums AlbumUi for reuse of AlbumItem component.
- */
-fun AlbumUi.toAlbumsAlbumUi(): fr.leboncoin.feature.albums.presentation.AlbumUi =
-    fr.leboncoin.feature.albums.presentation.AlbumUi(
-        id = id,
-        albumId = albumId,
-        title = title,
-        url = url,
-        thumbnailUrl = thumbnailUrl,
-        albumLabel = albumLabel,
-        trackLabel = trackLabel,
-        isFavorite = isFavorite,
-    )
