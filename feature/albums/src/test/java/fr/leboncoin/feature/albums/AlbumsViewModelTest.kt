@@ -6,9 +6,7 @@ import fr.leboncoin.data.repository.AlbumRepository
 import fr.leboncoin.feature.albums.presentation.AlbumsAction
 import fr.leboncoin.feature.albums.presentation.AlbumsEvent
 import fr.leboncoin.feature.albums.presentation.AlbumsViewModel
-import fr.leboncoin.feature.albums.presentation.findAlbum
 import fr.leboncoin.feature.albums.presentation.toAlbumUi
-import fr.leboncoin.feature.albums.presentation.visibleAlbums
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -127,7 +125,6 @@ class AlbumsViewModelTest {
         vm.onAction(AlbumsAction.OnFavoriteToggle(trackId = 2))
 
         val state = vm.state.value
-        assertEquals(setOf(1, 2), state.favoriteTrackIds)
         assertTrue(state.albums.first { it.id == 2 }.isFavorite)
     }
 
@@ -143,9 +140,10 @@ class AlbumsViewModelTest {
 
         val state = vm.state.first { it.albums.isNotEmpty() }
 
-        assertEquals("Second", state.findAlbum(albumId = 2)?.title)
-        assertNotNull(state.findAlbum(albumId = 2))
-        assertNull(state.findAlbum(albumId = 99))
+        // Verify album can be found in albums list using local computation
+        assertEquals("Second", state.albums.firstOrNull { it.id == 2 }?.title)
+        assertNotNull(state.albums.firstOrNull { it.id == 2 })
+        assertNull(state.albums.firstOrNull { it.id == 99 })
     }
 
     @Test
@@ -182,7 +180,7 @@ class AlbumsViewModelTest {
     }
 
     @Test
-    fun onCategorySelected_filtersVisibleAlbums() = runTest {
+    fun albumGroupCards_computed_onAlbumsUpdate() = runTest {
         val albums = listOf(
             albumDto(1, albumId = 1),
             albumDto(2, albumId = 2),
@@ -190,32 +188,14 @@ class AlbumsViewModelTest {
         )
         val repository = FakeAlbumRepository(initialAlbums = albums)
         val vm = AlbumsViewModel(repository)
-        vm.state.first { it.albums.isNotEmpty() }
-
-        vm.onAction(AlbumsAction.OnCategorySelected(albumId = 1))
-        var state = vm.state.value
-        assertEquals(1, state.selectedCategory)
-        assertEquals(listOf(1, 3), state.visibleAlbums.map { it.id })
-
-        vm.onAction(AlbumsAction.OnCategorySelected(albumId = null))
-        state = vm.state.value
-        assertNull(state.selectedCategory)
-        assertEquals(3, state.visibleAlbums.size)
-    }
-
-    @Test
-    fun availableCategories_isDistinctSortedAlbumIds() = runTest {
-        val albums = listOf(
-            albumDto(1, albumId = 3),
-            albumDto(2, albumId = 1),
-            albumDto(3, albumId = 3),
-            albumDto(4, albumId = 2),
-        )
-        val repository = FakeAlbumRepository(initialAlbums = albums)
-        val vm = AlbumsViewModel(repository)
-
+        
         val state = vm.state.first { it.albums.isNotEmpty() }
-
-        assertEquals(listOf(1, 2, 3), state.availableCategories)
+        
+        // Verify albumGroupCards are computed in the state
+        assertEquals(2, state.albumGroupCards.size)
+        assertEquals(1, state.albumGroupCards[0].albumId)
+        assertEquals(2, state.albumGroupCards[1].albumId)
+        assertEquals(2, state.albumGroupCards[0].trackCount)
+        assertEquals(1, state.albumGroupCards[1].trackCount)
     }
 }

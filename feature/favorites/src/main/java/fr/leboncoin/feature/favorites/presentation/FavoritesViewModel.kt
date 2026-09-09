@@ -36,24 +36,27 @@ class FavoritesViewModel(
 
     private fun observeFavorites() {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
             combine(
                 repository.observeAlbums(),
                 repository.observeFavoriteTrackIds(),
             ) { dtos, favoriteIds ->
                 dtos to favoriteIds
             }.collect { (dtos, favoriteIds) ->
-                // Filter albums to only show favorites
-                val favorites = dtos
-                    .filter { favoriteIds.contains(it.id) }
+               dtos.filter { favoriteIds.contains(it.id) }
                     .map { dto ->
                         dto.toAlbumUi(isFavorite = true)
-                    }
-                _state.update {
-                    it.copy(
-                        albums = favorites,
-                        favoriteTrackIds = favoriteIds,
-                    )
-                }
+                    }.let { favorites ->
+                       _state.update {
+                           it.copy(
+                               isLoading = false,
+                               error = null,
+                               albums = favorites,
+                               favoriteTrackIds = favoriteIds,
+                           )
+                       }
+                   }
+
             }
         }
     }

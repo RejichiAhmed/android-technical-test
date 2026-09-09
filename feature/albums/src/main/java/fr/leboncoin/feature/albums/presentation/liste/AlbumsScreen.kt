@@ -15,7 +15,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,8 +29,6 @@ import fr.leboncoin.feature.albums.presentation.AlbumsState
 import fr.leboncoin.feature.albums.presentation.AlbumsViewModel
 import fr.leboncoin.feature.albums.presentation.AlbumUi
 import fr.leboncoin.feature.albums.presentation.ObserveAsEvents
-import fr.leboncoin.feature.albums.presentation.albumGroupCards
-import fr.leboncoin.feature.albums.presentation.visibleAlbums
 import fr.leboncoin.feature.albums.ui.AlbumGridCard
 import org.koin.androidx.compose.koinViewModel
 import com.adevinta.spark.components.buttons.ButtonFilled
@@ -74,32 +71,23 @@ fun AlbumsListScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             when {
-                state.isLoading && state.albums.isEmpty() -> FullScreenLoading(contentPadding)
+                state.isLoading && state.albumGroupCards.isEmpty() -> FullScreenLoading(contentPadding)
 
-                state.error != null && state.visibleAlbums.isEmpty() ->
-                    FullScreenError(
-                        message = state.error,
-                        onRetry = { onAction(AlbumsAction.OnRetryClick) },
-                        contentPadding = contentPadding,
-                    )
+                state.error != null && state.albumGroupCards.isEmpty() -> FullScreenError(
+                    message = state.error,
+                    onRetry = { onAction(AlbumsAction.OnRetryClick) },
+                    contentPadding = contentPadding,
+                )
 
                 else -> Column(modifier = Modifier.fillMaxSize()) {
-                    if (state.error != null) {
-                        ErrorBanner(
-                            message = state.error,
-                            onRetry = { onAction(AlbumsAction.OnRetryClick) },
-                        )
-                    }
-
-                    if (state.visibleAlbums.isEmpty()) {
+                    if (state.albumGroupCards.isEmpty() && !state.isLoading) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("No albums in this category")
+                            Text("No albums")
                         }
                     } else {
-                        // Grid of album group cards
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -108,7 +96,7 @@ fun AlbumsListScreen(
                             modifier = Modifier.padding(contentPadding),
                         ) {
                             items(
-                                items = state.albumGroupCards(),
+                                items = state.albumGroupCards,
                                 key = { card -> card.albumId }
                             ) { card ->
                                 AlbumGridCard(
@@ -216,7 +204,6 @@ private fun AlbumsListScreenErrorWithCachePreview() {
                     trackLabel = "Track #1",
                 )
             ),
-            availableCategories = listOf(1),
             error = "Network unavailable",
         ),
         onAction = {},
@@ -248,8 +235,6 @@ private fun AlbumsListScreenPopulatedPreview() {
                     trackLabel = "Track #$id",
                 )
             },
-            availableCategories = listOf(1, 2, 3),
-            selectedCategory = 2,
         ),
         onAction = {},
     )
