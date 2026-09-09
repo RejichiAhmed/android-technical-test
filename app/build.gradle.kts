@@ -39,9 +39,6 @@ android {
     buildFeatures {
         compose = true
     }
-    lint {
-        baseline = file("lint-baseline.xml")
-    }
 }
 
 dependencies {

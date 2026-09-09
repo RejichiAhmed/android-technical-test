@@ -1,7 +1,4 @@
 # AndroidRecruitmentTestApp
-
-> 📄 **Architecture, patterns, library choices and justification:** see [`ARCHITECTURE.md`](./ARCHITECTURE.md)
-
 ## ÉNONCÉ
 
 Vous devez améliorer une application native Android affichant la liste des items suivant (titres d'albums) : https://static.leboncoin.fr/img/shared/technical-test.json

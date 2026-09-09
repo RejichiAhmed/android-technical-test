@@ -12,7 +12,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 - **Actions**:
   - Search for all imports of classes that will move (AlbumsViewModel, AlbumsScreen, AlbumDetailScreen, AlbumItem)
   - Identify cross-module dependencies (`:app` â†” `:data`, `:app` â†” `:feature:albums`)
-  - Document all Koin module registrations for album-related classes in [AppDependenciesProvider.kt](app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/di/AppDependenciesProvider.kt)
+  - Document all Koin module registrations for album-related classes in [AppDependenciesProvider.kt](../app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/di/AppDependenciesProvider.kt)
   - Check test files that depend on moving classes ([AlbumsViewModelTest.kt](app/src/test/java/fr/leboncoin/androidrecruitmenttestapp/AlbumsViewModelTest.kt))
 
 - **Validation Criteria**:
@@ -26,7 +26,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 #### Step 1.2: Verify Navigation Routes
 - **Actions**:
   - Review [AppRoutes.kt](app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/navigation/AppRoutes.kt) to confirm `@Serializable` routes
-  - Check how routes are used in [MainActivity.kt](app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/MainActivity.kt) (NavHost, composable<T>)
+  - Check how routes are used in [MainActivity.kt](../app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/MainActivity.kt) (NavHost, composable<T>)
   - Confirm type-safe navigation doesn't rely on string hardcoding
 
 - **Validation Criteria**:
@@ -63,7 +63,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 #### Step 2.2: Create `:feature:albums` Build Configuration
 - **Dependencies**: Step 2.1 complete
 - **Actions**:
-  - Create [feature/albums/build.gradle.kts](feature/albums/build.gradle.kts) with:
+  - Create [feature/albums/build.gradle.kts](../feature/albums/build.gradle.kts) with:
     - `plugins { alias(libs.plugins.android.library) }` (library, not app)
     - `namespace = "fr.leboncoin.feature.albums"`
     - `compileSdk = 37`, `minSdk = 24`, `targetSdk = 36`
@@ -78,7 +78,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 
 - **Validation Criteria**:
   - Build file is syntactically correct
-  - References valid library aliases from [libs.versions.toml](gradle/libs.versions.toml)
+  - References valid library aliases from [libs.versions.toml](../gradle/libs.versions.toml)
   - Correctly set as Android library
 
 - **Complexity**: Medium
@@ -87,7 +87,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 #### Step 2.3: Update Root Settings
 - **Dependencies**: Step 2.2 complete
 - **Actions**:
-  - Update [settings.gradle.kts](settings.gradle.kts):
+  - Update [settings.gradle.kts](../settings.gradle.kts):
     - Change `include(":app")` and `include(":data")` to add `include(":feature:albums")`
     - Should be: `include(":app")`, `include(":data")`, `include(":feature:albums")`
 
@@ -101,7 +101,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 #### Step 2.4: Update `:app` Build Dependencies
 - **Dependencies**: Step 2.3 complete
 - **Actions**:
-  - Update [app/build.gradle.kts](app/build.gradle.kts):
+  - Update [app/build.gradle.kts](../app/build.gradle.kts):
     - Add: `implementation(project(":feature:albums"))`
     - Keep: `implementation(project(":data"))` (for types needed by AppScreen)
     - Remove unnecessary Compose libraries that will now be transitive (optional cleanup)
@@ -269,7 +269,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 #### Step 4.3: Refactor MainActivity
 - **Dependencies**: Step 4.2 complete
 - **Actions**:
-  - Update [MainActivity.kt](app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/MainActivity.kt):
+  - Update [MainActivity.kt](../app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/MainActivity.kt):
     - Remove NavHost, composable definitions, route imports
     - Remove AlbumsViewModel creation and albums state collection
     - Remove AlbumDetailRoute, AlbumsRoute imports
@@ -361,7 +361,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 #### Step 5.2: Update `:app` DI Module
 - **Dependencies**: Step 5.1 complete
 - **Actions**:
-  - Update [AppDependenciesProvider.kt](app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/di/AppDependenciesProvider.kt):
+  - Update [AppDependenciesProvider.kt](../app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/di/AppDependenciesProvider.kt):
     - Remove `viewModel { AlbumsViewModel(get()) }` (now in `:feature:albums`)
     - Keep AnalyticsHelper, CoroutineScope
     - Add: `viewModel { AppScreenViewModel() }` (if needed)
@@ -385,7 +385,7 @@ Migrate album-related UI, screens, navigation, and ViewModel from `:app` to a ne
 #### Step 5.3: Update PhotoApp Initialization
 - **Dependencies**: Steps 5.1 & 5.2 complete
 - **Actions**:
-  - Update [PhotoApp.kt](app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/PhotoApp.kt):
+  - Update [PhotoApp.kt](../app/src/main/java/fr/leboncoin/androidrecruitmenttestapp/PhotoApp.kt):
     - Add import: `import fr.leboncoin.feature.albums.di.AlbumsModule`
     - Modify `startKoin { modules(DataModule, AppDependenciesProvider, AlbumsModule) }`
   - Final:
