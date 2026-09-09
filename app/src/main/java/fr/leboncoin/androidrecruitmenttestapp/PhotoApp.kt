@@ -4,6 +4,7 @@ import android.app.Application
 import fr.leboncoin.androidrecruitmenttestapp.di.AppDependenciesProvider
 import fr.leboncoin.data.di.DataModule
 import fr.leboncoin.feature.albums.di.AlbumsModule
+import fr.leboncoin.feature.favorites.di.FavoritesModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
@@ -21,7 +22,7 @@ class PhotoApp : Application() {
         startKoin {
             androidLogger()
             androidContext(this@PhotoApp)
-            modules(DataModule, AppDependenciesProvider, AlbumsModule)
+            modules(DataModule, AppDependenciesProvider, AlbumsModule, FavoritesModule)
         }
     }
 }

@@ -23,3 +23,4 @@ rootProject.name = "Android RecruitmentTest App"
 include(":app")
 include(":data")
 include(":feature:albums")
+include(":feature:favorites")

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "fr.leboncoin.feature.albums"
+    namespace = "fr.leboncoin.feature.favorites"
     compileSdk = 37
 
     defaultConfig {
@@ -42,6 +42,7 @@ android {
 
 dependencies {
     implementation(project(":data"))
+    implementation(project(":feature:albums"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
