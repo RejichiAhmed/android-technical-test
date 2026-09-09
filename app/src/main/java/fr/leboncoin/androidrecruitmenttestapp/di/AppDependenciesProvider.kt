@@ -1,15 +1,19 @@
 package fr.leboncoin.androidrecruitmenttestapp.di
 
+import fr.leboncoin.androidrecruitmenttestapp.PhotoApp
 import fr.leboncoin.androidrecruitmenttestapp.utils.AnalyticsHelper
-import fr.leboncoin.data.di.DataDependencies
-import java.util.logging.Logger
+import fr.leboncoin.androidrecruitmenttestapp.viewmodel.AppScreenViewModel
+import kotlinx.coroutines.CoroutineScope
+import org.koin.android.ext.koin.androidApplication
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
 
-interface AppDependenciesProvider {
-    val dependencies: AppDependencies
-}
+val AppDependenciesProvider = module {
+    single { AnalyticsHelper() }
 
-class AppDependencies {
-    val logger: Logger by lazy { Logger.getGlobal() }
-    val analyticsHelper: AnalyticsHelper by lazy { AnalyticsHelper() }
-    val dataDependencies: DataDependencies by lazy { DataDependencies() }
+    single<CoroutineScope> {
+        (androidApplication() as PhotoApp).applicationScope
+    }
+
+    viewModel { AppScreenViewModel(get()) }
 }

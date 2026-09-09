@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "fr.leboncoin.data"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 24
@@ -43,8 +43,15 @@ android {
         implementation(libs.okhttp.logging)
 
         implementation(libs.kotlin.serialization.json)
+        implementation(libs.room.runtime)
+        implementation(libs.room.ktx)
+        implementation(libs.koin.core)
+        implementation(libs.koin.android)
+
+        ksp(libs.room.compiler)
 
         testImplementation(libs.junit)
+        testImplementation(libs.kotlinx.coroutines.test)
         androidTestImplementation(libs.androidx.junit) // Useless dependency
         androidTestImplementation(libs.androidx.espresso.core) // Useless dependency
     }
